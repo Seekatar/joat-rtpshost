@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema" elementFormDefault="qualified">
+  <xs:element name="scripts">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element maxOccurs="unbounded" ref="script"/>
+        <xs:element maxOccurs="unbounded" ref="scriptSet" minOccurs="0"/>
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="script">
+    <xs:complexType mixed="true">
+      <xs:attribute name="description" use="required" type="xs:string"/>
+      <xs:attribute name="echoScript" type="dotNetBool"/>
+      <xs:attribute name="name" use="required" type="xs:string"/>
+      <xs:attribute name="neverPrompt" type="dotNetBool"/>
+      <xs:attribute name="promptOnError" type="dotNetBool"/>
+      <xs:attribute name="type" >
+        <xs:simpleType>
+        <xs:restriction base="xs:string">
+          <xs:enumeration value="preRun"/>
+          <xs:enumeration value="postRun"/>
+          <xs:enumeration value="success"/>
+          <xs:enumeration value="fail"/>
+        </xs:restriction>
+        </xs:simpleType>
+      </xs:attribute>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="scriptSet">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element maxOccurs="unbounded" ref="step"/>
+      </xs:sequence>
+      <xs:attribute name="name" use="required" type="xs:string"/>
+      <xs:attribute name="description" use="required" type="xs:string"/>
+      <xs:attribute name="listType" use="required" type="whiteOrBlack"/>
+      <xs:attribute name="noArtie" type="dotNetBool"/>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="step">
+    <xs:complexType>
+      <xs:attribute name="name" use="required" type="xs:string"/>
+    </xs:complexType>
+  </xs:element>
+  <xs:simpleType name="dotNetBool">
+    <xs:restriction base="xs:NCName">
+      <xs:enumeration value="True"/>
+      <xs:enumeration value="False"/>
+    </xs:restriction>
+  </xs:simpleType> 
+  <xs:simpleType name="whiteOrBlack">
+    <xs:restriction base="xs:NCName">
+      <xs:enumeration value="black"/>
+      <xs:enumeration value="white"/>
+    </xs:restriction>
+  </xs:simpleType> 
+</xs:schema>

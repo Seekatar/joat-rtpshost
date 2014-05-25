@@ -82,12 +82,30 @@ namespace RtPsHost
         /// <param name="choices"></param>
         /// <param name="defaultChoice"></param>
         /// <returns></returns>
-        int PromptForChoice(string caption, string message, IEnumerable<PromptChoice> choices, int defaultChoice);
+        int PromptForChoice(string caption, string message, IEnumerable<PromptChoice> choices, int defaultChoice );
 
         /// <summary>
         /// Write the progress to whoever is listening for it.
         /// </summary>
         /// <param name="progressInfo"></param>
         void WriteProgress(ProgressInfo progressInfo);
+
+        /// <summary>
+        /// prompt for a string
+        /// </summary>
+        /// <param name="caption">Text that preceeds the prompt (a title). usually empty</param>
+        /// <param name="message">Text of the prompt. usually empty </param>
+        /// <param name="descriptions">list of descriptions, usually just one</param>
+        /// <returns>a string for each description</returns>
+        string PromptForString(string caption, string message, string descriptions);
+    
+        /// <summary>
+        /// prompt for a password string
+        /// </summary>
+        /// <param name="caption">Text that preceeds the prompt (a title). usually empty</param>
+        /// <param name="message">Text of the prompt. usually empty </param>
+        /// <param name="descriptions">list of descriptions, usually just one</param>
+        /// <returns>a string for each description</returns>
+        System.Security.SecureString PromptForSecureString(string caption, string message, string description);
     }
 }

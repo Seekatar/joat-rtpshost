@@ -104,7 +104,7 @@ namespace RtPsHost
             WriteText(foreground, background, msg, true, type);
         }
 
-        public virtual int PromptForChoice(string caption, string message, IEnumerable<RtPsHost.PromptChoice> choices, int defaultChoice)
+        public virtual int PromptForChoice(string caption, string message, IEnumerable<RtPsHost.PromptChoice> choices, int defaultChoice )
         {
             WriteText(String.Format("Returning default choice of {0} for prompt {1} {2} {3}", defaultChoice, caption, message, String.Join(", ", choices.Select(o => o.Name))), true,WriteType.System);
             return defaultChoice;
@@ -113,6 +113,19 @@ namespace RtPsHost
         public virtual void WriteProgress(RtPsHost.ProgressInfo progressInfo)
         {
             WriteText(progressInfo.ToString(), true,WriteType.System);
+        }
+
+
+        public string PromptForString(string caption, string message, string description)
+        {
+            WriteText(String.Format("Returning empty string for prompt {0} {1} {2} {3}", caption, message, description), true, WriteType.System);
+            return String.Empty;
+        }
+
+        public System.Security.SecureString PromptForSecureString(string caption, string message, string description)
+        {
+            WriteText(String.Format("Returning empty secure string for prompt {0} {1} {2} {3}", caption, message, description), true, WriteType.System);
+            return new System.Security.SecureString();
         }
     }
 

@@ -69,17 +69,8 @@ namespace RtPsHost
         /// <param name="xml"></param>
         public static void LoadFromXmlFile(this List<ScriptInfo> me, string xml)
         {
-            XDocument doc = null;
-            if ( System.IO.File.Exists(xml))
-            { 
-                doc = XDocument.Load(xml);
-            }
-            else
-            {
-                doc = XDocument.Parse("<scripts/>");
-            }
+            XDocument doc = XDocument.Load(xml);
             me.LoadFromXml(doc);
-            
         }
 
         /// <summary>
