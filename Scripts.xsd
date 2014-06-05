@@ -8,13 +8,19 @@
       </xs:sequence>
     </xs:complexType>
   </xs:element>
+  <!-- this has the PowerShell snippet as its value with attributes controlling how it is run-->
   <xs:element name="script">
     <xs:complexType mixed="true">
-      <xs:attribute name="description" use="required" type="xs:string"/>
-      <xs:attribute name="echoScript" type="dotNetBool"/>
+      <!-- name of the step.  Used in display, and when skipping -->
       <xs:attribute name="name" use="required" type="xs:string"/>
+      <xs:attribute name="description" use="required" type="xs:string"/>
+      <!-- if true, echoes the script to stdout before it runs -->
+      <xs:attribute name="echoScript" type="dotNetBool"/>
+      <!-- if true will not pause before running if step is set to true -->
       <xs:attribute name="neverPrompt" type="dotNetBool"/>
+      <!-- if an error occurs, prompt the user to continue or stop running scripts -->
       <xs:attribute name="promptOnError" type="dotNetBool"/>
+      <!-- type of script to allow running groups of scripts, if not set, it will be "normal" -->
       <xs:attribute name="type" >
         <xs:simpleType>
         <xs:restriction base="xs:string">
@@ -27,6 +33,7 @@
       </xs:attribute>
     </xs:complexType>
   </xs:element>
+  <!-- named grouping of steps used to run a subset -->
   <xs:element name="scriptSet">
     <xs:complexType>
       <xs:sequence>
@@ -34,7 +41,9 @@
       </xs:sequence>
       <xs:attribute name="name" use="required" type="xs:string"/>
       <xs:attribute name="description" use="required" type="xs:string"/>
+      <!-- if a white-list only the steps in the list are run, if black the steps in the list are not run-->
       <xs:attribute name="listType" use="required" type="whiteOrBlack"/>
+      <!-- proprietary switch to turn off the GUI between preRun and normal -->
       <xs:attribute name="noArtie" type="dotNetBool"/>
     </xs:complexType>
   </xs:element>

@@ -9,6 +9,9 @@ using System.Threading.Tasks;
 
 namespace RtPsHost
 {
+    /// <summary>
+    /// Simplified PowerShell host class to run a series of PowerShell commands in an XML file
+    /// </summary>
     public class PsHost : IDisposable
     {
         private List<ScriptInfo> _commands = new List<ScriptInfo>();
@@ -24,6 +27,7 @@ namespace RtPsHost
         /// <summary>
         /// initialize powershell
         /// </summary>
+        /// <param name="console">an implementation of the console to handle output and user interaction</param>
         public void Initialize(IPsConsole console)
         {
             if (!_initialized)
@@ -49,12 +53,14 @@ namespace RtPsHost
         }
 
         /// <summary>
-        /// run the scripts in the scriptFname asycn
+        /// run the a series of scripts in the scriptFname, async
         /// </summary>
-        /// <param name="scriptFname"></param>
-        /// <param name="logFname"></param>
-        /// <param name="step"></param>
-        /// <returns>true if not canceled or error out</returns>
+        /// <param name="scriptFname">file name of XML with PowerShell snippets.  See the doc of XSD for details</param>
+        /// <param name="step">if true and snippet allows stepping, will prompt before running a setp</param>
+        /// <param name="items">objects to push into PowerShell</param>
+        /// <param name="type">type of scripts to read from the XML</param>
+        /// <param name="skipUntil">if supplied, skips steps until one of this name is hit</param>
+        /// <returns>ProcessingResult indicating how the script ended</returns>
         public async Task<ProcessingResult> InvokeAsync(string scriptFname, bool step, IDictionary<string, object> items, ScriptInfo.ScriptType type = ScriptInfo.ScriptType.normal, string skipUntil = null )
         {
             _scriptFileName = scriptFname;
@@ -174,23 +180,31 @@ namespace RtPsHost
             _commands.Insert(0, new ScriptInfo() { Script = set.ToString(), Name = "Hide Start/Stop-Transcript", NeverPrompt = true,  EchoScript = false, Type = type });
         }
 
+        /// <summary>
+        /// set variables into the PowerShell runspace
+        /// </summary>
+        /// <param name="variables"></param>
+        /// <param name="type"></param>
         private void setVariables(IDictionary<string, object> variables, ScriptInfo.ScriptType type )
         {
-            StringBuilder set = new StringBuilder();
-            foreach (var s in variables )
+            if (variables != null)
             {
-                var setPS = PowerShell.Create(); // create new PS each time otherwise keeps adding to it
-                setPS.Runspace = this._myRunSpace;
-                setPS.AddScript(String.Format("function _setGlobal( $a ) {{ $global:{0} = $a; Write-Verbose \"{0} is $($global:{0})\"}}", s.Key));
-                setPS.Invoke();
-                setPS.AddCommand("_setGlobal");
-                setPS.AddArgument(s.Value);
-                setPS.Invoke();
+                StringBuilder set = new StringBuilder();
+                foreach (var s in variables)
+                {
+                    var setPS = PowerShell.Create(); // create new PS each time otherwise keeps adding to it
+                    setPS.Runspace = this._myRunSpace;
+                    setPS.AddScript(String.Format("function _setGlobal( $a ) {{ $global:{0} = $a; Write-Verbose \"{0} is $($global:{0})\"}}", s.Key));
+                    setPS.Invoke();
+                    setPS.AddCommand("_setGlobal");
+                    setPS.AddArgument(s.Value);
+                    setPS.Invoke();
 
-            }
-            if (set.Length > 0)
-            {
-                _commands.Insert(0, new ScriptInfo() { Script = set.ToString(), Name = "Set Globals", NeverPrompt = true, EchoScript = false, Type = type });
+                }
+                if (set.Length > 0)
+                {
+                    _commands.Insert(0, new ScriptInfo() { Script = set.ToString(), Name = "Set Globals", NeverPrompt = true, EchoScript = false, Type = type });
+                }
             }
         }
 
@@ -401,7 +415,9 @@ namespace RtPsHost
         }
         #endregion
 
-
+        /// <summary>
+        /// cleanup 
+        /// </summary>
         public void Dispose()
         {
             if (_myHost != null)

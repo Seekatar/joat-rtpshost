@@ -8,7 +8,7 @@ using System.Threading.Tasks;
 namespace RtPsHost
 {
     /// <summary>
-    /// Console class that logs all writes to a log file, no prompting
+    /// Console IPsConsole implementation that logs all writes to a log file, no prompting
     /// </summary>
     public class LoggingConsole : RtPsHost.IPsConsole, IDisposable
     {

@@ -3,7 +3,7 @@
 namespace RtPsHost
 {
     /// <summary>
-    /// class to wrap reporting progress in PS
+    /// class to wrap reporting progress in PowerShell
     /// </summary>
     /// This has members that mirror the parameters for Write-Version
     public class ProgressInfo
@@ -46,12 +46,12 @@ namespace RtPsHost
         /// <summary>
         ///  constructor with default parameters for all but activity
         /// </summary>
-        /// <param name="activity"></param>
-        /// <param name="status"></param>
-        /// <param name="currentOperation"></param>
-        /// <param name="percentComplete"></param>
-        /// <param name="id"></param>
-        /// <param name="secondsRemaining"></param>
+        /// <param name="activity">name used to identify the progress</param>
+        /// <param name="status">status string to show</param>
+        /// <param name="currentOperation">operation string to show</param>
+        /// <param name="percentComplete">what percent complete it is.</param>
+        /// <param name="id">id used to differentiate multiple instances of the progress bar</param>
+        /// <param name="secondsRemaining">optional seconds remaining to show</param>
         public ProgressInfo(string activity, string status = null, string currentOperation = null, int percentComplete = 0, int id = 0, int secondsRemaining = 0)
         {
             Success = true;
@@ -67,8 +67,17 @@ namespace RtPsHost
             }
         }
 
+        /// <summary>
+        /// implicit string conversion operator the return the activity string.\
+        /// </summary>
+        /// <param name="pi"></param>
+        /// <returns></returns>
         public static implicit operator string(ProgressInfo pi) { return pi.Activity; }
 
+        /// <summary>
+        /// show the progress as a string
+        /// </summary>
+        /// <returns></returns>
         public override string ToString()
         {
             return String.Format("{0} {3,3}% {1} {2} ", Activity, CurrentOperation, Status, PercentComplete);

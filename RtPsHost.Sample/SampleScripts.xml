@@ -1,0 +1,24 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<scripts>
+  <script name="Step1" echoScript="false">
+    Write-Host "This is step 1"
+  </script>
+  <script name="Step2" echoScript="false">
+    Write-Host "This is step 2 in blue on white" -ForegroundColor blue -BackgroundColor white
+  </script>
+  <script name="Step3" echoScript="false">
+    $x = Read-Host -Prompt "Enter something"
+    Write-Output "You entered $x"
+    Write-Verbose "You entered $x"
+  </script>
+  <script name="Step4" echoScript="false">
+    $x = Read-Host -Prompt "Enter something secure" -AsSecureString
+    Write-Output "You entered $x"
+  </script>
+  <script name="Step5" echoScript="false">
+    $yes =([System.Management.Automation.Host.ChoiceDescription]"&amp;yes")
+    $no =([System.Management.Automation.Host.ChoiceDescription]"&amp;no")
+    $selection =[System.Management.Automation.Host.ChoiceDescription[]] ($yes,$no)
+    Write-Host "You picked $($host.ui.PromptForChoice('Yes or No?','',$selection,0))"
+  </script>
+</scripts>

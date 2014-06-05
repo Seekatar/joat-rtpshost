@@ -22,12 +22,12 @@ namespace RtPsHost
     /// <summary>
     /// Simplified interface to a PSHost
     /// </summary>
+    /// Implement this interface in your application to handle output and user interaction
     public interface IPsConsole
     {
         /// <summary>
         /// set to true if a script calls exit
         /// </summary>
-        /// 
         bool ShouldExit { get; set; }
 
         /// <summary>
@@ -51,43 +51,52 @@ namespace RtPsHost
         int WindowWidth { get; }
 
         /// <summary>
-        /// write a message in the current colors
+        /// write a message in the current colors, without a newline
         /// </summary>
-        /// <param name="msg"></param>
+        /// <param name="msg">the message type write</param>
+        /// <param name="type">type of message being written, output, verbose, etc.</param>
         void Write(string msg, WriteType type);
 
         /// <summary>
         /// write a line in the current colors
         /// </summary>
         /// <param name="msg"></param>
+        /// <param name="msg">the message type write</param>
+        /// <param name="type">type of message being written, output, verbose, etc.</param>
         void WriteLine(string msg, WriteType type);
 
         /// <summary>
-        /// write a message using specified colors
+        /// write a message using specified colors, without a new line
         /// </summary>
-        /// <param name="msg"></param>
+        /// <param name="foreground">the foreground color to use</param>
+        /// <param name="background">the background color to use</param>
+        /// <param name="msg">the message type write</param>
+        /// <param name="type">type of message being written, output, verbose, etc.</param>
         void Write(ConsoleColor foreground, ConsoleColor background, string msg, WriteType type);
 
         /// <summary>
         /// write a line using specified colors
         /// </summary>
-        /// <param name="msg"></param>
+        /// <param name="foreground">the foreground color to use</param>
+        /// <param name="background">the background color to use</param>
+        /// <param name="msg">the message type write</param>
+        /// <param name="type">type of message being written, output, verbose, etc.</param>
         void WriteLine(ConsoleColor foreground, ConsoleColor background, string msg, WriteType type);
 
         /// <summary>
         /// prompt the user for a single choice
         /// </summary>
-        /// <param name="caption"></param>
-        /// <param name="message"></param>
-        /// <param name="choices"></param>
-        /// <param name="defaultChoice"></param>
-        /// <returns></returns>
+        /// <param name="caption">caption to display above the choices</param>
+        /// <param name="message">more detailed message about the choices</param>
+        /// <param name="choices">the choices</param>
+        /// <param name="defaultChoice">the zero-based default choice, use -1 for no default</param>
+        /// <returns>the zero-based choice the user picked</returns>
         int PromptForChoice(string caption, string message, IEnumerable<PromptChoice> choices, int defaultChoice );
 
         /// <summary>
-        /// Write the progress to whoever is listening for it.
+        /// Write the progress to whoemver is listening for it.
         /// </summary>
-        /// <param name="progressInfo"></param>
+        /// <param name="progressInfo">the details about the progress</param>
         void WriteProgress(ProgressInfo progressInfo);
 
         /// <summary>
@@ -95,8 +104,8 @@ namespace RtPsHost
         /// </summary>
         /// <param name="caption">Text that preceeds the prompt (a title). usually empty</param>
         /// <param name="message">Text of the prompt. usually empty </param>
-        /// <param name="descriptions">list of descriptions, usually just one</param>
-        /// <returns>a string for each description</returns>
+        /// <param name="descriptions">description</param>
+        /// <returns>a string they entered</returns>
         string PromptForString(string caption, string message, string descriptions);
     
         /// <summary>
@@ -104,8 +113,8 @@ namespace RtPsHost
         /// </summary>
         /// <param name="caption">Text that preceeds the prompt (a title). usually empty</param>
         /// <param name="message">Text of the prompt. usually empty </param>
-        /// <param name="descriptions">list of descriptions, usually just one</param>
-        /// <returns>a string for each description</returns>
+        /// <param name="descriptions">description</param>
+        /// <returns>a string they entered</returns>
         System.Security.SecureString PromptForSecureString(string caption, string message, string description);
     }
 }

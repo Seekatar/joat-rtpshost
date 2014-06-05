@@ -1,6 +1,9 @@
 ﻿
 namespace RtPsHost
 {
+    /// <summary>
+    /// result code from processing a PowerShell script
+    /// </summary>
     public enum ProcessingResult
     {
         ok,         // completed ok
