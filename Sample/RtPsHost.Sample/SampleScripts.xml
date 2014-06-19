@@ -1,9 +1,0 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
-<scripts>
-  <script name="Step1" echoScript="false">
-    Write-Host "This is step 1"
-  </script>
-  <script name="Step2" echoScript="false">
-    Write-Host "This is step 2 in blue on white" -ForegroundColor blue -BackgroundColor white
-  </script>
-</scripts>
