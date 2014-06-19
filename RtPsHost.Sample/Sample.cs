@@ -45,7 +45,11 @@ Write-Error ""ow!""
                 task.Wait();
 
                 console.WriteLine("\n\nTest: Invoking script steps in XML file\n\n", WriteType.Verbose);
+                task = host.InvokeAsync("SampleScripts.xml", step, null, ScriptInfo.ScriptType.preRun);
+                task.Wait();
                 task = host.InvokeAsync("SampleScripts.xml", step, null);
+                task.Wait();
+                task = host.InvokeAsync("SampleScripts.xml", step, null, ScriptInfo.ScriptType.postRun);
                 task.Wait();
                             }
             catch (Exception e)

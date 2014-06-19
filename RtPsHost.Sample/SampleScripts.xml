@@ -1,5 +1,8 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <scripts>
+  <script name="PreStep1" echoScript="false" type="preRun">
+    Write-Host "This is a PRERUN step"
+  </script>
   <script name="Step1" echoScript="false">
     Write-Host "This is step 1"
   </script>
@@ -20,5 +23,8 @@
     $no =([System.Management.Automation.Host.ChoiceDescription]"&amp;no")
     $selection =[System.Management.Automation.Host.ChoiceDescription[]] ($yes,$no)
     Write-Host "You picked $($host.ui.PromptForChoice('Yes or No?','',$selection,0))"
+  </script>
+  <script name="PostStep1" echoScript="false" type="postRun">
+    Write-Host "This is a POSTRUN step"
   </script>
 </scripts>

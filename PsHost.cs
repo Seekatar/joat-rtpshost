@@ -70,7 +70,7 @@ namespace RtPsHost
 
             _commands.LoadFromXmlFile(_scriptFileName);
 
-            return await invokeAsync(items, ScriptInfo.ScriptType.normal, step, skipUntil,quiet);
+            return await invokeAsync(items, type, step, skipUntil,quiet);
         }
 
         /// <summary>
