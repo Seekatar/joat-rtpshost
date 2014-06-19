@@ -9,3 +9,4 @@ obj
 bin
 .netrc
 _netrc
+*.user

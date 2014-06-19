@@ -9,7 +9,7 @@
   <script name="Step3" echoScript="false">
     $x = Read-Host -Prompt "Enter something"
     Write-Output "You entered $x"
-    Write-Verbose "You entered $x"
+    Write-Verbose "You entered $x" -verbose
   </script>
   <script name="Step4" echoScript="false">
     $x = Read-Host -Prompt "Enter something secure" -AsSecureString

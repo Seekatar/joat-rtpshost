@@ -10,9 +10,9 @@ using System.Threading.Tasks;
 namespace RtPsHost
 {
     /// <summary>
-    /// Simplified PowerShell host class to run a series of PowerShell commands in an XML file
+    /// Simplified PowerShell host class to run a series of PowerShell commands in an XML file, or just a script
     /// </summary>
-    public class PsHost : IDisposable
+    public class PsHost : IDisposable, RtPsHost.IPsHost
     {
         private List<ScriptInfo> _commands = new List<ScriptInfo>();
         private Runspace _myRunSpace;
@@ -23,6 +23,8 @@ namespace RtPsHost
         private bool _canceled = false;
         private IPsConsole _console;
         bool _initialized = false;
+
+        internal PsHost() { }
 
         /// <summary>
         /// initialize powershell
@@ -60,26 +62,62 @@ namespace RtPsHost
         /// <param name="items">objects to push into PowerShell</param>
         /// <param name="type">type of scripts to read from the XML</param>
         /// <param name="skipUntil">if supplied, skips steps until one of this name is hit</param>
+        /// <param name="quiet">if true doesn't show progress of scripts, or echo scripts if they are set to echo</param>
         /// <returns>ProcessingResult indicating how the script ended</returns>
-        public async Task<ProcessingResult> InvokeAsync(string scriptFname, bool step, IDictionary<string, object> items, ScriptInfo.ScriptType type = ScriptInfo.ScriptType.normal, string skipUntil = null )
+        public async Task<ProcessingResult> InvokeAsync(string scriptFname, bool step, IDictionary<string, object> items, ScriptInfo.ScriptType type = ScriptInfo.ScriptType.normal, string skipUntil = null, bool quiet = false )
         {
             _scriptFileName = scriptFname;
 
-            _canceled = false;
+            _commands.LoadFromXmlFile(_scriptFileName);
+
+            return await invokeAsync(items, ScriptInfo.ScriptType.normal, step, skipUntil,quiet);
+        }
+
+        /// <summary>
+        /// run a script, async
+        /// </summary>
+        /// <param name="script">PowerShell script to run</param>
+        /// <param name="name">name shown if quiet is false</param>
+        /// <param name="items">objects to push into PowerShell</param>
+        /// <param name="quiet">if true doesn't show progress of scripts, or echo scripts if they are set to echo</param>
+        /// <param name="dontPrompt">if true never prompts the user for anything.  Will error if no default values available.</param>
+        /// <returns>ProcessingResult indicating how the script ended</returns>
+        public async Task<ProcessingResult> InvokeAsync(string script, string name, IDictionary<string, object> items, bool dontPrompt = true, bool quiet = true)
+        {
+            _scriptFileName = string.Empty;
+
+            _commands.Clear();
+            _commands.Add(new ScriptInfo()
+            {
+                Script = script,
+                Type = ScriptInfo.ScriptType.normal,
+                EchoScript = false,
+                Description = string.Empty,
+                Name = name,
+                NeverPrompt = dontPrompt,
+                PromptOnError = !dontPrompt
+            });
+
+            return await invokeAsync(items, ScriptInfo.ScriptType.normal, quiet:quiet);
+        }
+
+        private async Task<ProcessingResult> invokeAsync(IDictionary<string, object> items, ScriptInfo.ScriptType type, bool step = false, string skipUntil = null, bool quiet = false)
+        {
             ProcessingResult ret = ProcessingResult.ok;
 
-            _commands.LoadFromXmlFile(_scriptFileName);
+            _canceled = false;
 
             // hide transcript cmdlets
             hideTranscriptCmdlets(type);
 
             // insert any global variables they set
-            setVariables(items,type);
+            setVariables(items, type);
 
-            var commands = _commands.Where(o => o.Type == type).ToList( );
-            _console.WriteLine(String.Format("Running {0} commands of type {1} loaded from \"{1}\"", commands.Count(), type, _scriptFileName),WriteType.System);
+            var commands = _commands.Where(o => o.Type == type).ToList();
+            if (!quiet)
+                _console.WriteLine(String.Format("Running {0} commands of type {1} loaded from \"{1}\"", commands.Count(), type, _scriptFileName), WriteType.System);
 
-            var progress = new ProgressInfo("Running PowerShell commands",id:1999);
+            var progress = new ProgressInfo("Running PowerShell commands", id: 1999);
             var totalCommands = commands.Count;
             int i = 0;
 
@@ -87,14 +125,16 @@ namespace RtPsHost
             {
                 progress.CurrentOperation = c.Name;
                 progress.PercentComplete = 100 * i++ / totalCommands;
-                _console.WriteProgress(progress);
+                if (!quiet)
+                    _console.WriteProgress(progress);
 
                 if (String.Equals(c.Name, skipUntil))
                     skipUntil = null;
 
                 if (!c.NeverPrompt && !String.IsNullOrWhiteSpace(skipUntil))
                 {
-                    _console.WriteLine("Skipping until " + skipUntil, WriteType.System);
+                    if (!quiet)
+                        _console.WriteLine("Skipping until " + skipUntil, WriteType.System);
                 }
                 else
                 {
@@ -122,7 +162,7 @@ namespace RtPsHost
                         // else execute it
                     }
 
-                    if (!await executeHelperAsync(c, null)  && !_canceled)
+                    if (!await executeHelperAsync(c, null, quiet) && !_canceled)
                     {
                         ret = ProcessingResult.failed;
                         int choice = 1;
@@ -133,7 +173,7 @@ namespace RtPsHost
                                 new PromptChoice("&Yes"),
                                 new PromptChoice("&No"),
                             };
-                            choice = _console.PromptForChoice(String.Format( "{0} errored. Do you want to continue?", c.Name), String.Empty, choices, 1);
+                            choice = _console.PromptForChoice(String.Format("{0} errored. Do you want to continue?", c.Name), String.Empty, choices, 1);
                         }
                         if (choice == 1) // No
                             break;
@@ -144,7 +184,7 @@ namespace RtPsHost
 
                 if (_canceled)
                 {
-                    _console.WriteLine("Canceled",WriteType.System);
+                    _console.WriteLine("Canceled", WriteType.System);
                     ret = ProcessingResult.canceled;
                     break;
                 }
@@ -156,14 +196,16 @@ namespace RtPsHost
                     break;
                 }
 
-                _console.WriteLine("",WriteType.Host);
+                _console.WriteLine("", WriteType.Host);
             }
 
-            _console.WriteLine("Processing complete. "+ret.ToString(),WriteType.System);
+            if (!quiet)
+                _console.WriteLine("Processing complete. " + ret.ToString(), WriteType.System);
 
             progress.PercentComplete = 100;
             progress.Success = ret == ProcessingResult.ok;
-            _console.WriteProgress(progress);
+            if (!quiet)
+                _console.WriteProgress(progress);
 
             return ret;
         }
@@ -225,13 +267,13 @@ namespace RtPsHost
         /// <param name="cmd"></param>
         /// <param name="input"></param>
         /// <returns></returns>
-        private Task<bool> executeHelperAsync(ScriptInfo cmd, object input)
+        private Task<bool> executeHelperAsync(ScriptInfo cmd, object input, bool quiet)
         {
             return Task.Run(() =>
             {
                 try
                 {
-                    return executeHelper(cmd, input);
+                    return executeHelper(cmd, input, quiet);
                 }
                 catch (RuntimeException rte)
                 {
@@ -269,7 +311,7 @@ namespace RtPsHost
         /// <param name="cmd">The script to run.</param>
         /// <param name="input">Any input arguments to pass to the script. 
         /// If null then nothing is passed in.</param>
-        private bool executeHelper(ScriptInfo cmd, object input)
+        private bool executeHelper(ScriptInfo cmd, object input, bool quiet)
         {
             // Ignore empty command lines.
             if (String.IsNullOrEmpty(cmd.Script))
@@ -277,10 +319,13 @@ namespace RtPsHost
                 return true;
             }
 
-            if (cmd.EchoScript)
-                _console.WriteLine( "Executing: " + cmd.Script,WriteType.System);
-            else
-                _console.WriteLine("Executing script named: " + cmd.Name, WriteType.System);
+            if (!quiet)
+            {
+                if (cmd.EchoScript)
+                    _console.WriteLine("Executing: " + cmd.Script, WriteType.System);
+                else
+                    _console.WriteLine("Executing script named: " + cmd.Name, WriteType.System);
+            }
 
             // Create the pipeline object and make it available to the
             // ctrl-C handle through the currentPowerShell instance
