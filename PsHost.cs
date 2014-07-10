@@ -24,8 +24,6 @@ namespace RtPsHost
         private IPsConsole _console;
         bool _initialized = false;
 
-        public PsHost() { }
-
         /// <summary>
         /// initialize powershell
         /// </summary>
@@ -321,10 +319,12 @@ namespace RtPsHost
 
             if (!quiet)
             {
+                _console.WriteLine("**********************************************************************************", WriteType.System);
                 if (cmd.EchoScript)
-                    _console.WriteLine("Executing: " + cmd.Script, WriteType.System);
+                    _console.WriteLine("*** Executing: " + cmd.Script, WriteType.System);
                 else
-                    _console.WriteLine("Executing script named: " + cmd.Name, WriteType.System);
+                    _console.WriteLine("*** Executing script named: " + cmd.Name, WriteType.System);
+                _console.WriteLine("**********************************************************************************", WriteType.System);
             }
 
             // Create the pipeline object and make it available to the
