@@ -11,9 +11,10 @@
     <!-- <iconUrl>http://ICON_URL_HERE_OR_DELETE_THIS_LINE</iconUrl> -->
     <requireLicenseAcceptance>false</requireLicenseAcceptance>
     <description>$description$</description>
-        <releaseNotes>1.0.1.1 Bug fix.
+        <releaseNotes>1.0.1.2 Add default constructor.
+1.0.1.1 Bug fix.
 1.0.1.0 Add support for running a single script.</releaseNotes>
-        <copyright>Copyright (c) 2014 Jim Wallace</copyright>
+        <copyright>Copyright © Jim Wallace 2010 - 2014</copyright>
         <tags>PowerShell C# Host</tags>
   </metadata>
 </package>

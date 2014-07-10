@@ -24,7 +24,7 @@ namespace RtPsHost
         private IPsConsole _console;
         bool _initialized = false;
 
-        internal PsHost() { }
+        public PsHost() { }
 
         /// <summary>
         /// initialize powershell
