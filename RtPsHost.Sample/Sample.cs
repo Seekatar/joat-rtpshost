@@ -39,6 +39,22 @@ Write-Error ""ow!""
 
             try
             {
+                //host.InvokeScriptAsync(@"param($z) Get-ExecutionPolicy; @{key=$z;value='dir'}", (System.Collections.IDictionary o) =>
+                //    {
+                //            foreach ( var i in o.Keys)
+                //            {
+                //                Console.WriteLine("{0} => {1}", i, o[i]);
+                //            }
+                //    }, new Dictionary<string,object>() {{"z",123}}).Wait(); ;
+
+                host.InvokeScriptAsync(@"test.ps1", (System.Collections.IDictionary o) =>
+                {
+                    foreach (var i in o.Keys)
+                    {
+                        Console.WriteLine("{0} => {1}", i, o[i]);
+                    }
+                }, new Dictionary<string, object>() { { "z", 123 } }).Wait(); ;
+
                 // invoke the scripts
                 console.WriteLine("\n\nTest: Invoking script\n\n", WriteType.Verbose);
                 var task = host.InvokeAsync(_script, "Test", items);

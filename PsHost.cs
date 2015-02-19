@@ -197,8 +197,8 @@ namespace RtPsHost
                 _console.WriteLine("", WriteType.Host);
             }
 
-            if (!quiet)
-                _console.WriteLine("Processing complete. " + ret.ToString(), WriteType.System);
+            if (!quiet && commands.Count > 0 )
+                _console.WriteLine(String.Format("Processing complete of comamands of type {0}. {1}", type, ret.ToString()), WriteType.System);
 
             progress.PercentComplete = 100;
             progress.Success = ret == ProcessingResult.ok;
@@ -255,6 +255,85 @@ namespace RtPsHost
         {
             currentPowerShell.Stop(); // TODO use begin stop
             _canceled = true;
+        }
+
+        /// <summary>
+        /// Invokes the script asynchronously.
+        /// </summary>
+        /// <param name="script">The script.</param>
+        /// <param name="outputProcessor">The output processor to process objects in the pipeline</param>
+        /// <returns></returns>
+        public Task InvokeScriptAsync<T>(string script, Action<T> outputProcessor, System.Collections.Generic.IDictionary<string, object> parms)
+        {
+            if (String.IsNullOrWhiteSpace(script))
+                throw new ArgumentException("script");
+
+            var ps = PowerShell.Create();
+
+             // Add the event handlers.  If we did not care about hooking the DataAdded
+            // event, we would let BeginInvoke create the output stream for us.
+            PSDataCollection<PSObject> output = new PSDataCollection<PSObject>();
+            output.DataAdded += new EventHandler<DataAddedEventArgs>((sender, e) =>
+            {
+                PSDataCollection<PSObject> myp = (PSDataCollection<PSObject>)sender;
+
+                Collection<PSObject> results = myp.ReadAll();
+                foreach (PSObject result in results)
+                {
+                    if (outputProcessor != null)
+                    {
+                        if (result.BaseObject is T)
+                        {
+                            outputProcessor((T)result.BaseObject);
+                        }
+                    }
+                }
+            });
+
+            ps.Runspace = this._myRunSpace;
+
+            if (!script.Contains('\r') && !script.Contains('\n') && System.IO.File.Exists(script))
+            {
+                ps.AddCommand("Set-ExecutionPolicy").AddParameter("ExecutionPolicy", "RemoteSigned").AddParameter("Scope", "Process").AddParameter("Force");
+
+                // only way I could get parameters to a script was this way
+                // doing ps.AddParameter or ps.AddArgument didn't work
+                script = String.Format("& \'{0}\'", System.IO.Path.GetFullPath(script)); // execute as a file
+                foreach (var p in parms)
+                {
+                    if (p.Value != null && p.Value.ToString().Contains(' '))
+                    {
+                        script += String.Format(" -{0} \"{1}\"", p.Key, p.Value.ToString());
+                    }
+                    else
+                    {
+                        script += String.Format(" -{0} {1}", p.Key, p.Value.ToString());
+                    }
+                }
+                parms = null;
+            }
+       
+            ps.AddScript(script);
+            if ( parms != null )
+            {
+                ps.AddParameters((System.Collections.IDictionary)parms);
+            }
+            
+            var task = Task.Run( () => 
+            {
+                ps.Invoke(null, output);
+                if (ps.Streams.Error.Count() > 0)
+                {
+                    var errs = new StringBuilder();
+                    foreach (var e in ps.Streams.Error)
+                    {
+                        errs.AppendLine(e.ToString());
+                    }
+                    throw new RuntimeException("Error executing script: " + errs.ToString());
+                }
+            });
+
+            return task;
         }
 
         #region PowerShell helpers
@@ -391,7 +470,6 @@ namespace RtPsHost
             }
             return true;
         }
-
 
         /// <summary>
         /// To display an exception using the display formatter, 

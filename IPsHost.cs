@@ -40,5 +40,15 @@ namespace RtPsHost
         /// cancel the currently running steps
         /// </summary>
         void Cancel();
+
+        /// <summary>
+        /// Invokes the script asynchronously, letting caller process output.
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="script">The script.</param>
+        /// <param name="outputProcessor">The output processor to process objects in the pipeline</param>
+        /// <param name="parms">The parameters to pass to the script.</param>
+        /// <returns></returns>
+        Task InvokeScriptAsync<T>( string script, Action<T> outputProcessor, System.Collections.Generic.IDictionary<string, object> parms );
     }
 }
