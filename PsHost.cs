@@ -62,13 +62,13 @@ namespace RtPsHost
         /// <param name="skipUntil">if supplied, skips steps until one of this name is hit</param>
         /// <param name="quiet">if true doesn't show progress of scripts, or echo scripts if they are set to echo</param>
         /// <returns>ProcessingResult indicating how the script ended</returns>
-        public async Task<ProcessingResult> InvokeAsync(string scriptFname, bool step, IDictionary<string, object> items, ScriptInfo.ScriptType type = ScriptInfo.ScriptType.normal, string skipUntil = null, bool quiet = false )
+        public async Task<ProcessingResult> InvokeAsync(string scriptFname, bool step, IDictionary<string, object> items, ScriptInfo.ScriptType type = ScriptInfo.ScriptType.normal, string skipUntil = null, bool quiet = false, IList<StepTiming> timings = null)
         {
             _scriptFileName = scriptFname;
 
             _commands.LoadFromXmlFile(_scriptFileName);
 
-            return await invokeAsync(items, type, step, skipUntil,quiet);
+            return await invokeAsync(items, type, step, skipUntil,quiet, timings);
         }
 
         /// <summary>
@@ -99,7 +99,7 @@ namespace RtPsHost
             return await invokeAsync(items, ScriptInfo.ScriptType.normal, quiet:quiet);
         }
 
-        private async Task<ProcessingResult> invokeAsync(IDictionary<string, object> items, ScriptInfo.ScriptType type, bool step = false, string skipUntil = null, bool quiet = false)
+        private async Task<ProcessingResult> invokeAsync(IDictionary<string, object> items, ScriptInfo.ScriptType type, bool step = false, string skipUntil = null, bool quiet = false, IList<StepTiming> timings = null)
         {
             ProcessingResult ret = ProcessingResult.ok;
 
@@ -133,6 +133,11 @@ namespace RtPsHost
                 {
                     if (!quiet)
                         _console.WriteLine("Skipping until " + skipUntil, WriteType.System);
+
+                    if (timings != null)
+                    {
+                        timings.Add(new StepTiming(c.Name, new TimeSpan(0), true));
+                    }
                 }
                 else
                 {
@@ -156,13 +161,30 @@ namespace RtPsHost
                         else if (choice == 2) // stop skipping
                             step = false;
                         else if (choice == 1) // no
+                        {
+                            if ( timings != null )
+                            {
+                                timings.Add(new StepTiming(c.Name, new TimeSpan(0), true));
+                            }
                             continue;
+                        }
                         // else execute it
                     }
 
-                    if (!await executeHelperAsync(c, null, quiet) && !_canceled)
+                    var start = DateTime.Now;
+
+                    var execRet = await executeHelperAsync(c, null, quiet);
+
+                    if (timings != null)
+                    {
+                        var end = DateTime.Now;
+                        timings.Add(new StepTiming(c.Name, end - start, false));
+                    }
+
+                    if (!execRet && !_canceled)
                     {
                         ret = ProcessingResult.failed;
+
                         int choice = 1;
                         if (c.PromptOnError)
                         {
@@ -198,7 +220,7 @@ namespace RtPsHost
             }
 
             if (!quiet && commands.Count > 0 )
-                _console.WriteLine(String.Format("Processing complete of comamands of type {0}. {1}", type, ret.ToString()), WriteType.System);
+                _console.WriteLine(String.Format("Processing complete of commands of type '{0}'. Return is {1}", type, ret.ToString()), WriteType.System);
 
             progress.PercentComplete = 100;
             progress.Success = ret == ProcessingResult.ok;
@@ -278,13 +300,19 @@ namespace RtPsHost
                 PSDataCollection<PSObject> myp = (PSDataCollection<PSObject>)sender;
 
                 Collection<PSObject> results = myp.ReadAll();
-                foreach (PSObject result in results)
+
+                if ( results != null && results.Count > 0 )
                 {
-                    if (outputProcessor != null)
+                    var count = results.Count;
+                    for ( int i = 0; i < count; i++)
                     {
-                        if (result.BaseObject is T)
+                        var result = results[i];
+                        if (outputProcessor != null)
                         {
-                            outputProcessor((T)result.BaseObject);
+                            if (result.BaseObject is T)
+                            {
+                                outputProcessor((T)result.BaseObject);
+                            }
                         }
                     }
                 }
