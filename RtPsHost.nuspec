@@ -11,7 +11,8 @@
     <!-- <iconUrl>http://ICON_URL_HERE_OR_DELETE_THIS_LINE</iconUrl> -->
     <requireLicenseAcceptance>false</requireLicenseAcceptance>
     <description>$description$</description>
-        <releaseNotes>1.0.3 Cleanup processing messages, add step logging
+        <releaseNotes>1.0.4 Added Invoke-PooledScript cmdlet
+1.0.3 Cleanup processing messages, add step logging
 1.0.2 Add method to invoke script with parms and process output stream.
 1.0.1.3 Factory for creating PSHost.
 1.0.1.2 Add default constructor.
