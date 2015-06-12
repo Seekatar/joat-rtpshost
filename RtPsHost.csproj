@@ -54,8 +54,10 @@
     <Compile Include="Host\MyHost.cs" />
     <Compile Include="Host\MyHostUserInterface.cs" />
     <Compile Include="Host\MyRawUserInterface.cs" />
+    <Compile Include="InvokePooledScript.cs" />
     <Compile Include="IPsHost.cs" />
     <Compile Include="LoggingConsole.cs" />
+    <Compile Include="PooledScript.cs" />
     <Compile Include="ProcessingResult.cs" />
     <Compile Include="ProgressInfo.cs" />
     <Compile Include="PromptChoice.cs" />
