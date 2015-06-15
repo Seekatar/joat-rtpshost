@@ -152,21 +152,6 @@ namespace RtPsHost
         public ConcurrentQueue<Tuple<DateTimeOffset, object, PooledScript>> LogList { get; private set; }
 
         /// <summary>
-        /// Gets the start time.
-        /// </summary>
-        public DateTime Start { get; internal set; }
-
-        /// <summary>
-        /// Gets the stop.
-        /// </summary>
-        public DateTime Stop { get; internal set; }
-
-        /// <summary>
-        /// Gets the duration.
-        /// </summary>
-        public TimeSpan Duration { get { return Stop - Start;  } }
-
-        /// <summary>
         /// Gets a value indicating whether [had errors].
         /// </summary>
         public bool HadErrors { get; internal set; }
@@ -187,7 +172,7 @@ namespace RtPsHost
         /// <summary>
         /// Gets or sets a value indicating whether this <see cref="PooledScript"/> is ended.
         /// </summary>
-        internal bool Ended { get; set; }
+        public bool Ended { get; internal set; }
 
         /// <summary>
         /// Shows the log messages.
@@ -243,7 +228,6 @@ namespace RtPsHost
         {
             Posh = posh;
             setStreams(posh.Streams);
-            Start = DateTime.Now;
             Sequence = sequence;
             Output = new PSDataCollection<PSObject>();
         }
@@ -254,8 +238,8 @@ namespace RtPsHost
         /// <param name="timedOut">if set to <c>true</c> [timed out].</param>
         internal void Stopped(bool timedOut = false)
         {
-            Stop = DateTime.Now;
             Ended = true;
+            HadErrors = Posh.HadErrors;
             TimedOut = timedOut;
             if (timedOut)
             {
@@ -263,9 +247,6 @@ namespace RtPsHost
             }
             else
             {
-                Ended = true;
-                Stop = DateTime.Now;
-                HadErrors = Posh.HadErrors;
                 try
                 {
                     Posh.EndInvoke(Result);
@@ -290,9 +271,6 @@ namespace RtPsHost
             else
             {
                 _error = new PSDataCollection<ErrorRecord>(_error);
-            }
-            if ( Exception != null )
-            {
             }
             Posh.Dispose();
             Posh = null;
