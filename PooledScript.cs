@@ -17,10 +17,11 @@ namespace RtPsHost
         PSDataCollection<VerboseRecord> _verbose;
         PSDataCollection<WarningRecord> _warning;
         PSDataCollection<ErrorRecord> _error;
+        PSDataCollection<PSObject> _output;
 
         internal PowerShell Posh;
 
-        internal void SetStreams(PSDataStreams ps)
+        private void setStreams(PSDataStreams ps)
         {
             Debug = ps.Debug;
             Verbose = ps.Verbose;
@@ -36,6 +37,11 @@ namespace RtPsHost
             if (rec != null)
                 LogList.Enqueue(new Tuple<DateTimeOffset, object, PooledScript>(DateTime.Now, rec[e.Index], this));
         }
+
+        /// <summary>
+        /// Make a log list that multiple scripts can share
+        /// </summary>
+        public static ConcurrentQueue<Tuple<DateTimeOffset, object, PooledScript>> MakeLogList() { return new ConcurrentQueue<Tuple<DateTimeOffset, object, PooledScript>>(); }
 
         /// <summary>
         /// Initializes a new instance of the <see cref="PooledScript" /> class.
@@ -135,15 +141,15 @@ namespace RtPsHost
         public PSDataCollection<ErrorRecord> Error { get { return _error; } internal set { _error = value; _error.DataAdded += _dataAdded<ErrorRecord>; } }
 
         /// <summary>
+        /// Gets the output objects after the thread has run.
+        /// </summary>
+        public PSDataCollection<PSObject> Output { get { return _output; } internal set { _output = value; _output.DataAdded += _dataAdded<PSObject>; } }
+
+        /// <summary>
         /// Gets the log list that holds the mix of log object in order they were logged
         /// </summary>
         /// Share with other PooledScripts to combine output
         public ConcurrentQueue<Tuple<DateTimeOffset, object, PooledScript>> LogList { get; private set; }
-
-        /// <summary>
-        /// Gets the output objects after the thread has run.
-        /// </summary>
-        public PSDataCollection<PSObject> Output { get; internal set; }
 
         /// <summary>
         /// Gets the start time.
@@ -184,20 +190,25 @@ namespace RtPsHost
         internal bool Ended { get; set; }
 
         /// <summary>
-        /// Gets all the log messages in order, combining debug, verbose, warning, and error
+        /// Shows the log messages.
         /// </summary>
-        /// <param name="includeTime">if set to <c>true</c> to include the timestamp as a prefix.</param>
+        /// <param name="loglist">The loglist.</param>
+        /// <param name="includeTime">if set to <c>true</c> [include time].</param>
+        /// <param name="includePooledScriptName">if set to <c>true</c> [include pooled script name].</param>
         /// <param name="timeFormat">The time format.</param>
         /// <returns></returns>
-        public IEnumerable<string> LogMessages(bool includeTime = true, bool includePooledScriptName = false, string timeFormat = "u" )
+        public static IEnumerable<string> LogMessages( ConcurrentQueue<Tuple<DateTimeOffset, object, PooledScript>> loglist, bool includeTime = true, bool includePooledScriptName = false, string timeFormat = "u")
         {
-            return LogList.Select(o =>
+            if (loglist == null)
+                return new string[0];
+
+            return loglist.Select(o =>
             {
                 var prefix = string.Empty;
                 if (includeTime)
                     prefix = o.Item1.ToString("u") + " ";
                 if (includePooledScriptName)
-                    prefix += o.Item3.NameAndSequence + " ";
+                    prefix += "[" + o.Item3.NameAndSequence + "] ";
 
                 if (o.Item2 is DebugRecord)
                     return prefix + "DEBUG: " + o.Item2.ToString();
@@ -208,8 +219,19 @@ namespace RtPsHost
                 else if (o.Item2 is ErrorRecord)
                     return prefix + "ERROR: " + o.Item2.ToString();
                 else
-                    return String.Empty;
+                    return prefix + "Output: " + o.Item2.ToString();
             });
+        }
+
+        /// <summary>
+        /// Gets all the log messages in order, combining debug, verbose, warning, and error
+        /// </summary>
+        /// <param name="includeTime">if set to <c>true</c> to include the timestamp as a prefix.</param>
+        /// <param name="timeFormat">The time format.</param>
+        /// <returns></returns>
+        public IEnumerable<string> LogMessages(bool includeTime = true, bool includePooledScriptName = false, string timeFormat = "u" )
+        {
+            return LogMessages(LogList);
         }
 
         /// <summary>
@@ -220,9 +242,10 @@ namespace RtPsHost
         internal void Starting(PowerShell posh, int sequence)
         {
             Posh = posh;
-            SetStreams(posh.Streams);
+            setStreams(posh.Streams);
             Start = DateTime.Now;
             Sequence = sequence;
+            Output = new PSDataCollection<PSObject>();
         }
 
         /// <summary>
@@ -245,7 +268,7 @@ namespace RtPsHost
                 HadErrors = Posh.HadErrors;
                 try
                 {
-                    Output = Posh.EndInvoke(Result);
+                    Posh.EndInvoke(Result);
                 }
                 catch (Exception e)
                 {

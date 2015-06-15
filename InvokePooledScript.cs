@@ -6,6 +6,7 @@ using System.Management.Automation.Runspaces;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Collections.Concurrent;
 
 namespace RtPsHost
 {
@@ -91,9 +92,12 @@ namespace RtPsHost
 
                     i.Starting(posh,sequence++);
 
+                    if (PassThru)
+                        i.Output.DataAdded += Output_DataAdded;
+
                     if ( !_testing ) WriteVerbose("Starting thread " + i.NameAndSequence);
 
-                    i.Result = i.Posh.BeginInvoke();
+                    i.Result = i.Posh.BeginInvoke(new PSDataCollection<PSObject>(), i.Output);
                 }
 
                 // wait for them to end
@@ -107,20 +111,12 @@ namespace RtPsHost
                             if (!_testing) WriteVerbose("Completed " + t.NameAndSequence);
                             completed++;
                             t.Stopped();
-                            if ( PassThru )
-                            {
-                                WriteObject(t.Output);
-                            }
                         }
                         else if (_timeout < DateTime.Now - t.Start) // timeout?
                         {
                             if (!_testing) WriteWarning("Timeout of " + t.NameAndSequence);
                             completed++;
                             t.Stopped(true);
-                            if (PassThru)
-                            {
-                                WriteObject(t.Output);
-                            }
                         }
 
                         if (ShowProgress && !_testing)
@@ -129,6 +125,11 @@ namespace RtPsHost
                             pr.StatusDescription = String.Format( "Completed script: '{0}'", t.NameAndSequence);
                             WriteProgress(pr);
                         }
+                    }
+                    PSObject output;
+                    while (_passThruOutput.TryDequeue(out output))
+                    {
+                        WriteObject(output);
                     }
                     Thread.Sleep(_pollingInterval);
                 }
@@ -140,6 +141,16 @@ namespace RtPsHost
                 if ( !_testing ) WriteProgress(pr);
             }
  
+        }
+
+        ConcurrentQueue<PSObject> _passThruOutput = new ConcurrentQueue<PSObject>();
+
+        void Output_DataAdded(object sender, DataAddedEventArgs e)
+        {
+            var rec = sender as PSDataCollection<PSObject>;
+            if (rec != null)
+                _passThruOutput.Enqueue( rec[e.Index] );
+            
         }
 
         public void Test(IEnumerable<PooledScript> info)
