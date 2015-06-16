@@ -175,48 +175,77 @@ namespace RtPsHost
         public bool Ended { get; internal set; }
 
         /// <summary>
-        /// Shows the log messages.
+        /// level used for logging diplay
         /// </summary>
-        /// <param name="loglist">The loglist.</param>
-        /// <param name="includeTime">if set to <c>true</c> [include time].</param>
-        /// <param name="includePooledScriptName">if set to <c>true</c> [include pooled script name].</param>
-        /// <param name="timeFormat">The time format.</param>
-        /// <returns></returns>
-        public static IEnumerable<string> LogMessages( ConcurrentQueue<Tuple<DateTimeOffset, object, PooledScript>> loglist, bool includeTime = true, bool includePooledScriptName = false, string timeFormat = "u")
+        [Flags]
+        public enum LogLevel
         {
-            if (loglist == null)
-                return new string[0];
+            ErrorOnly   = 0x01,
+            WarningOnly = 0x02,
+            VerboseOnly = 0x04,
+            DebugOnly   = 0x08,
+            OutputOnly  = 0x10,
 
-            return loglist.Select(o =>
-            {
-                var prefix = string.Empty;
-                if (includeTime)
-                    prefix = o.Item1.ToString("u") + " ";
-                if (includePooledScriptName)
-                    prefix += "[" + o.Item3.NameAndSequence + "] ";
-
-                if (o.Item2 is DebugRecord)
-                    return prefix + "DEBUG: " + o.Item2.ToString();
-                else if (o.Item2 is VerboseRecord)
-                    return prefix + "VERBOSE: " + o.Item2.ToString();
-                else if (o.Item2 is WarningRecord)
-                    return prefix + "WARNING: " + o.Item2.ToString();
-                else if (o.Item2 is ErrorRecord)
-                    return prefix + "ERROR: " + o.Item2.ToString();
-                else
-                    return prefix + "Output: " + o.Item2.ToString();
-            });
+            Warning     = ErrorOnly | WarningOnly,
+            Verbose     = Warning | VerboseOnly,
+            Debug       = DebugOnly | Verbose,
+            All         = Debug | OutputOnly
         }
 
         /// <summary>
         /// Gets all the log messages in order, combining debug, verbose, warning, and error
         /// </summary>
-        /// <param name="includeTime">if set to <c>true</c> to include the timestamp as a prefix.</param>
+        /// <param name="loglist">The loglist.</param>
+        /// <param name="level">The level of logging to show, defaults to Warning and Error.</param>
+        /// <param name="includeTime">if set to <c>true</c> [include time].</param>
+        /// <param name="includePooledScriptName">if set to <c>true</c> [include pooled script name].</param>
         /// <param name="timeFormat">The time format.</param>
-        /// <returns></returns>
-        public IEnumerable<string> LogMessages(bool includeTime = true, bool includePooledScriptName = false, string timeFormat = "u" )
+        /// <returns>the messages in time order</returns>
+        public static IEnumerable<string> GetMessages( ConcurrentQueue<Tuple<DateTimeOffset, object, PooledScript>> loglist, LogLevel level = LogLevel.Warning, bool includeTime = true, bool includePooledScriptName = false, string timeFormat = "u")
         {
-            return LogMessages(LogList);
+            if (loglist == null)
+                return new string[0];
+
+            return loglist.Where(o =>
+            {
+                return o.Item2 is DebugRecord && (level & LogLevel.DebugOnly) != 0 ||
+                       o.Item2 is VerboseRecord && (level & LogLevel.VerboseOnly) != 0 || 
+                       o.Item2 is WarningRecord && (level & LogLevel.WarningOnly) != 0 ||
+                       o.Item2 is ErrorRecord && (level & LogLevel.ErrorOnly) != 0 ||
+                       (level & LogLevel.OutputOnly) != 0;
+            }).
+                Select(o =>
+                {
+                    var prefix = string.Empty;
+                    if (includeTime)
+                        prefix = o.Item1.ToString("u") + " ";
+                    if (includePooledScriptName)
+                        prefix += "[" + o.Item3.NameAndSequence + "] ";
+
+                    if (o.Item2 is DebugRecord)
+                        return prefix + "DEBUG: " + o.Item2.ToString();
+                    else if (o.Item2 is VerboseRecord)
+                        return prefix + "VERBOSE: " + o.Item2.ToString();
+                    else if (o.Item2 is WarningRecord)
+                        return prefix + "WARNING: " + o.Item2.ToString();
+                    else if (o.Item2 is ErrorRecord)
+                        return prefix + "ERROR: " + o.Item2.ToString();
+                    else
+                        return prefix + "Output: " + o.Item2.ToString();
+                });
+        }
+
+        /// <summary>
+        /// Gets all the log messages in order, combining debug, verbose, warning, and error
+        /// </summary>
+        /// <param name="level">The level of logging to show, defaults to Warning and Error.</param>
+        /// <param name="includeTime">if set to <c>true</c> [include time].</param>
+        /// <param name="includePooledScriptName">if set to <c>true</c> [include pooled script name].</param>
+        /// <param name="timeFormat">The time format.</param>
+        /// <returns>the messages in time order</returns>
+        public IEnumerable<string> GetMessages(LogLevel level = LogLevel.Warning, bool includeTime = true, bool includePooledScriptName = false, string timeFormat = "u")
+        {
+            return GetMessages(LogList, level, includeTime, includePooledScriptName, timeFormat);
         }
 
         /// <summary>
