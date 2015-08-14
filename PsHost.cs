@@ -6,6 +6,7 @@ using System.Management.Automation;
 using System.Management.Automation.Runspaces;
 using System.Text;
 using System.Threading.Tasks;
+using System.Xml.Linq;
 
 namespace RtPsHost
 {
@@ -23,6 +24,17 @@ namespace RtPsHost
         private bool _canceled = false;
         private IPsConsole _console;
         bool _initialized = false;
+
+        /// <summary>
+        /// Gets the script sets in the script file, if any
+        /// </summary>
+        /// <param name="scriptFname">The script fname.</param>
+        /// <returns>list of script set names and descriptions</returns>
+        public IDictionary<string, string> GetScriptSets(string scriptFname)
+        {
+            var doc = XDocument.Load(scriptFname);
+            return doc.Root.Descendants("scriptSet").ToDictionary( o => o.Attribute("name").ToString(), p => p.Attribute("description").ToString() );
+        }
 
         /// <summary>
         /// initialize powershell
@@ -61,14 +73,33 @@ namespace RtPsHost
         /// <param name="type">type of scripts to read from the XML</param>
         /// <param name="skipUntil">if supplied, skips steps until one of this name is hit</param>
         /// <param name="quiet">if true doesn't show progress of scripts, or echo scripts if they are set to echo</param>
-        /// <returns>ProcessingResult indicating how the script ended</returns>
-        public async Task<ProcessingResult> InvokeAsync(string scriptFname, bool step, IDictionary<string, object> items, ScriptInfo.ScriptType type = ScriptInfo.ScriptType.normal, string skipUntil = null, bool quiet = false, IList<StepTiming> timings = null)
+        /// <param name="timings">The timings collection for measuring how long each step takse.</param>
+        /// <param name="scriptSet">The optional script set for limiting what scripts to run from the file.</param>
+        /// <param name="test">if set to <c>true</c> does not run any scripts</param>
+        /// <returns>
+        /// ProcessingResult indicating how the script ended
+        /// </returns>
+        public async Task<ProcessingResult> InvokeAsync(string scriptFname, bool step, IDictionary<string, object> items, ScriptInfo.ScriptType type = ScriptInfo.ScriptType.normal, string skipUntil = null, bool quiet = false, IList<StepTiming> timings = null, string scriptSet = null, bool test = false)
         {
             _scriptFileName = scriptFname;
 
-            _commands.LoadFromXmlFile(_scriptFileName);
+            _commands.LoadFromXmlFile(_scriptFileName, scriptSet );
 
-            return await invokeAsync(items, type, step, skipUntil,quiet, timings);
+            return await invokeAsync(items, type, step, skipUntil,quiet, timings, test);
+        }
+
+        /// <summary>
+        /// run a script, async
+        /// </summary>
+        /// <param name="config">The PowerShell configuration.</param>
+        /// <param name="items">objects to push into PowerShell</param>
+        /// <param name="type">The type.</param>
+        /// <returns>
+        /// ProcessingResult indicating how the script ended
+        /// </returns>
+        public async Task<ProcessingResult> InvokeAsync(IPsConfig config, IDictionary<string, object> items, ScriptInfo.ScriptType type = ScriptInfo.ScriptType.normal, IList<StepTiming> timings = null)
+        {
+            return await InvokeAsync(config.ScriptFile, config.Step, items, type, config.SkipUntil, config.Quiet, timings, config.ScriptSet, config.Test);
         }
 
         /// <summary>
@@ -99,7 +130,7 @@ namespace RtPsHost
             return await invokeAsync(items, ScriptInfo.ScriptType.normal, quiet:quiet);
         }
 
-        private async Task<ProcessingResult> invokeAsync(IDictionary<string, object> items, ScriptInfo.ScriptType type, bool step = false, string skipUntil = null, bool quiet = false, IList<StepTiming> timings = null)
+        private async Task<ProcessingResult> invokeAsync(IDictionary<string, object> items, ScriptInfo.ScriptType type, bool step = false, string skipUntil = null, bool quiet = false, IList<StepTiming> timings = null, bool test = false)
         {
             ProcessingResult ret = ProcessingResult.ok;
 
@@ -173,7 +204,12 @@ namespace RtPsHost
 
                     var start = DateTime.Now;
 
-                    var execRet = await executeHelperAsync(c, null, quiet);
+                    bool execRet = true;
+                    if (!test)
+                    {
+                        var er = await executeHelperAsync(c, null, quiet);
+                        execRet = er;
+                    }
 
                     if (timings != null)
                     {

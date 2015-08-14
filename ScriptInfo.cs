@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Xml.Linq;
+using System.Linq;
+using System.Xml.XPath;
 
 namespace RtPsHost
 {
@@ -65,12 +67,13 @@ namespace RtPsHost
         /// <summary>
         /// load an array of scriptInfo from a file
         /// </summary>
-        /// <param name="me"></param>
-        /// <param name="xml"></param>
-        public static void LoadFromXmlFile(this List<ScriptInfo> me, string xml)
+        /// <param name="me">Me.</param>
+        /// <param name="xml">The XML file name.</param>
+        /// <param name="scriptSet">The optional script set for filtering commands.</param>
+        public static void LoadFromXmlFile(this List<ScriptInfo> me, string xml, string scriptSet )
         {
             XDocument doc = XDocument.Load(xml);
-            me.LoadFromXml(doc);
+            me.LoadFromXml(doc, scriptSet);
         }
 
         /// <summary>
@@ -78,13 +81,40 @@ namespace RtPsHost
         /// </summary>
         /// <param name="me"></param>
         /// <param name="xml"></param>
-        public static void LoadFromXml(this List<ScriptInfo> me, XDocument doc)
+        /// <param name="scriptSet">The optional script set for filtering commands.</param>
+        public static void LoadFromXml(this List<ScriptInfo> me, XDocument doc, string scriptSet)
         {
             me.Clear();
-            foreach (var s in doc.Root.Elements("script"))
+            IList<string> steps = null;
+            var allScripts = doc.Root.Elements("script");
+
+            if ( !String.IsNullOrWhiteSpace(scriptSet))
+            {
+                var ss = doc.Root.XPathSelectElement(String.Format("/scripts/scriptSet[@name=\"{0}\"]", scriptSet));
+                if ( ss != null )
+                {
+                    bool whiteList = true;
+                    var listType = ss.Attribute("listType");
+                    if ( listType != null )
+                        whiteList = String.Equals( listType.Value, "white", StringComparison.CurrentCultureIgnoreCase );
+
+                    steps =  doc.Root.XPathSelectElements(String.Format("/scripts/scriptSet[@name=\"{0}\"]/step", scriptSet)).Where( o => o.Attribute("id") != null ).Select( o => o.Attribute("id").Value).ToList();
+                    if ( !whiteList )
+                    {
+                        steps = allScripts.Where(o => o.Attribute("id") != null ).Select( o => o.Attribute("id").Value).Except(steps).ToList();
+                    }
+
+                    if (steps != null && steps.Count == 0)
+                    {
+                        steps = null;
+                    }
+                }
+            }
+            foreach (var s in allScripts)
             {
                 if (!String.IsNullOrWhiteSpace(s.Value))
                 {
+                    var id = (string)s.Attribute("id");
                     var si = new ScriptInfo()
                     {
                         Script = s.Value,
@@ -98,7 +128,9 @@ namespace RtPsHost
                     ScriptInfo.ScriptType st;
                     if (Enum.TryParse<ScriptInfo.ScriptType>((string)s.Attribute("type") ?? ScriptInfo.ScriptType.normal.ToString(), out st))
                         si.Type = st;
-                    me.Add(si);
+
+                    if ( steps == null || steps.Contains(id))
+                        me.Add(si);
                 }
             }
         }
