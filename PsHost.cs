@@ -157,13 +157,13 @@ namespace RtPsHost
                 if (!quiet)
                     _console.WriteProgress(progress);
 
-                if (String.Equals(c.Name, skipUntil))
+                if (String.Equals(c.Id, skipUntil))
                     skipUntil = null;
 
                 if (!c.NeverPrompt && !String.IsNullOrWhiteSpace(skipUntil))
                 {
                     if (!quiet)
-                        _console.WriteLine("Skipping until " + skipUntil, WriteType.System);
+                        _console.WriteLine(String.Format("Skipping \"{0}\" until \"{1}\"", c.Name, skipUntil), WriteType.System);
 
                     if (timings != null)
                     {

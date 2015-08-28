@@ -59,6 +59,14 @@ namespace RtPsHost
         /// </summary>
         public bool PromptOnError { get; set; }
 
+        /// <summary>
+        /// Gets or sets the identifier.
+        /// </summary>
+        public string Id { get; set; }
+
+        /// <summary>
+        /// Gets or sets the type.
+        /// </summary>
         public ScriptType Type { get; set; }
     }
 
@@ -123,6 +131,7 @@ namespace RtPsHost
                         EchoScript = (bool?)s.Attribute("echoScript") ?? false,
                         NeverPrompt = (bool?)s.Attribute("neverPrompt") ?? false,
                         PromptOnError = (bool?)s.Attribute("promptOnError") ?? false,
+                        Id = (string)s.Attribute("id") ?? String.Empty,
                         Type = ScriptInfo.ScriptType.normal
                     };
                     ScriptInfo.ScriptType st;
