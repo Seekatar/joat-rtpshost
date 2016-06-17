@@ -462,12 +462,8 @@ namespace RtPsHost
 
             if (!quiet)
             {
-                _console.WriteLine("**********************************************************************************", WriteType.System);
                 if (cmd.EchoScript)
-                    _console.WriteLine("*** Executing: " + cmd.Script, WriteType.System);
-                else
-                    _console.WriteLine("*** Executing script named: " + cmd.Name, WriteType.System);
-                _console.WriteLine("**********************************************************************************", WriteType.System);
+                    _console.WriteLine(cmd.Script, WriteType.System);
             }
 
             // Create the pipeline object and make it available to the
